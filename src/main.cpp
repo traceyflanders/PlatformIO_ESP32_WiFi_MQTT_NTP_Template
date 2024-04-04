@@ -5,17 +5,25 @@
 // Must have includes
 #include "wifimqtt.h"
 
+// Loop timing
 unsigned long previousMillis = millis();
 unsigned long previousMillis2 = millis();
 int update_in_seconds = 15;
-int update_in_seconds2 = 5;
+int update_in_seconds2 = 1;
 
 void setup()
 {
     Serial.begin(115200);
+    Serial.println(F("Setup Start"));
 
-    // Set all output pins
-    // set_output_pins();
+    // Set array of gpio pins to output
+    // setup_output_pins();
+
+    // Buttons
+    // setup_easy_button();
+
+    // BME280 Sensor
+    // setup_bme280();
 
     // Wifi
     setup_wifi();
@@ -24,19 +32,25 @@ void setup()
     setup_sntp();
 
     // MQTT
-    client.setServer(mqtt_server, mqtt_server_port);
-    client.setCallback(mqtt_callback);
+    setup_mqtt();
+
+    Serial.println(F("Setup End"));
 }
 
 void loop()
 {
-    // MQTT loops
+    // MQTT non-blocking
     if (!client.connected())
     {
         reconnect();
     }
+    else
+    {
+        client.loop();
+    }
 
-    client.loop();
+    // Buttons
+    // button.read();
 
     // Get current time in ms
     unsigned long currentMillis = millis();

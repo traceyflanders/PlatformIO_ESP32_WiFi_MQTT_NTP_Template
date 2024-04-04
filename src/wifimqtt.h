@@ -1,13 +1,13 @@
 // All include libraries here
 #include <Arduino.h>
 #include <SPI.h>
+#include <Wire.h>
+#include "credentials.h"
 #include <ArduinoJson.h>
 #include <WiFi.h>
-#include <Wire.h>
 #include "time.h"
 #include "esp_sntp.h"
 #include <PubSubClient.h>
-#include "credentials.h"
 // #include <EasyButton.h>
 // #include <Adafruit_BME280.h>
 
@@ -23,8 +23,7 @@
 const int batteryMonitorPin = 34; // Requires voltage divider circuit for 3.3V
 
 /*!
- * Rounds a number to 2 decimal places\
- * example: round(3.14159) -> 3.14
+ * Rounds a number to 2 decimal places example: round(3.14159) -> 3.14
  * @param value  Float value to round
  * @return  value with only two decimal places
  */
@@ -33,12 +32,47 @@ double round_json(double value)
   return (int)(value * 100 + 0.5) / 100.0;
 }
 
+// Easy Button
+EasyButton button(32); // Button 1
+
+// BME280 Temp, Humd, Pressure Sensor
+Adafruit_BME280 bme; // use I2C interface
+uint8_t bme280_address = 0x76;
+#define SEALEVELPRESSURE_HPA (1007)
+float temperature_celsius, temperature, humidity, pressure, altitude_meters, altitude;
+
+/*!
+ * Initializes BME280 sensor in setup
+ * @param
+ * @return
+ */
+void setup_bme280()
+{
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print("Function: ");
+    Serial.println(__FUNCTION__);
+  }
+  Serial.println();
+  Serial.print(F("BME280 Sensor: "));
+  if (!bme.begin(bme280_address, &Wire))
+  {
+    Serial.println(F("[FAILED]"));
+    while (1)
+      delay(10);
+  }
+  else
+  {
+    Serial.println(F("[SUCCESS]"));
+  }
+}
 /*!
  *   Sets array of  gpio pins a pinMode output on ESP32
  *   @param
  *   @returns void
  */
-/*void set_output_pins()
+/*void setup_output_pins()
 {
   if (DEBUG)
   {
@@ -351,6 +385,7 @@ void reconnect()
     String mqtt_subscribed_topics[] = {
         "" + root_topic + client_id + "/cmd/get_battery_level",
         "" + root_topic + client_id + "/cmd/get_wifi_signal_strength",
+        "" + root_topic + client_id + "/cmd/get_bme280_data",
         "" + root_topic + client_id + "/cmd/set_gpio",
         "" + root_topic + client_id + "/cmd/reboot"};
 
@@ -466,7 +501,7 @@ void reconnect()
 }
 
 /*!
- *  MQTT Publishes a json msg
+ *  MQTT Publishes a specified msg on a specified topic with retain message option
  *   @param  topic      MQTT Topic to publish
  *   @returns void
  */
@@ -520,9 +555,9 @@ void pub_battery_level(String topic)
   doc["id"] = client_id;
   doc["date"] = get_current_date();
   doc["time"] = get_current_time();
-  doc["system"]["battery_level"] = battery_level;
-  doc["system"]["raw_analog"] = raw_analog;
-  // doc["system"]["rand_num"] = random(100, 999);
+  doc["battery"]["level"] = battery_level;
+  doc["battery"]["raw_analog"] = raw_analog;
+  // doc["battery"]["rand_num"] = random(100, 999);
 
   char buffer[256];
   serializeJson(doc, buffer);
@@ -547,11 +582,89 @@ void pub_wifi_signal_strength(String topic)
   doc["id"] = client_id;
   doc["date"] = get_current_date();
   doc["time"] = get_current_time();
-  doc["system"]["rssi"] = WiFi.RSSI();
-  // doc["system"]["rand_num"] = random(100, 999);
+  doc["network"]["rssi"] = WiFi.RSSI();
+  // doc["network"]["rand_num"] = random(100, 999);
 
   char buffer[256];
   serializeJson(doc, buffer);
+  pub_msg(topic, buffer, false);
+}
+
+/*!
+ * Gets bme280 sensor data
+ * @param
+ * @return
+ */
+void pub_bme280_data(String topic)
+{
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print("Function: ");
+    Serial.println(__FUNCTION__);
+  }
+  bme.setSampling(Adafruit_BME280::MODE_FORCED,
+                  Adafruit_BME280::SAMPLING_X1, // temperature
+                  Adafruit_BME280::SAMPLING_X1, // pressure
+                  Adafruit_BME280::SAMPLING_X1, // humidity
+                  Adafruit_BME280::FILTER_OFF);
+
+  bme.takeForcedMeasurement();
+
+  // BME Temperatures
+  temperature_celsius = bme.readTemperature();
+  temperature = (1.8 * temperature_celsius + 32);
+
+  // BME Humidity
+  humidity = bme.readHumidity();
+
+  // BME Pressure
+  pressure = (bme.readPressure() / 100.0F);
+
+  // BME Altitude
+  altitude_meters = (bme.readAltitude(SEALEVELPRESSURE_HPA));
+  altitude = (altitude_meters * 3.28084);
+
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print("Temperature = ");
+    Serial.print(temperature);
+    Serial.println(" *C");
+
+    Serial.print("Pressure = ");
+    Serial.print(pressure);
+    Serial.println(" hPa");
+
+    Serial.print("Approx. Altitude = ");
+    Serial.print(altitude);
+    Serial.println(" m");
+
+    Serial.print("Humidity = ");
+    Serial.print(humidity);
+    Serial.println(" %");
+    Serial.println();
+  }
+
+  // Create JSON document
+  JsonDocument doc;
+  doc["id"] = client_id;
+  doc["date"] = get_current_date();
+  doc["time"] = get_current_time();
+  doc["sensor"]["type"] = "BME280";
+  doc["sensor"]["i2c_address"] = "0x" + String(bme280_address, HEX);
+  doc["environment"]["temperature"] = round_json(temperature);
+  doc["environment"]["temperature_celsius"] = round_json(temperature_celsius);
+  doc["environment"]["humidity"] = round_json(humidity);
+  doc["environment"]["altitude"] = round_json(altitude);
+  doc["environment"]["altitude_m"] = round_json(altitude_meters);
+  doc["environment"]["pressure_hPa"] = round_json(pressure);
+  // doc["environment"]["rand_num"] = random(100, 999);
+
+  char buffer[512];
+  serializeJson(doc, buffer);
+
+  Serial.println();
   pub_msg(topic, buffer, false);
 }
 
@@ -574,8 +687,8 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   Serial.print("MQTT subscribe msg arrived on topic: ");
   Serial.print(topic);
   Serial.print("    msg: ");
-  String messageTemp;
 
+  String messageTemp;
   for (int i = 0; i < length; i++)
   {
     // Serial.println((char)message[i]);
@@ -593,6 +706,8 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   }
 
   // Check subscribed topics when message arrives
+
+  // Check for cmd set gpio topic
   if (String(topic) == root_topic + client_id + "/cmd/set_gpio" && !messageTemp.isEmpty())
   {
 
@@ -604,6 +719,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
     // Test if parsing succeeds.
     if (error)
     {
+      Serial.println();
       Serial.print(F("deserializeJson() failed: "));
       Serial.println(error.f_str());
       return;
@@ -652,34 +768,121 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
     char buffer[256];
     serializeJson(doc2, buffer);
 
+    String reply_topic = root_topic + client_id + "/status/gpio" + gpio_pin;
+    Serial.print("reply on topic: " + reply_topic);
     Serial.println();
-    pub_msg(root_topic + client_id + "/status/gpio" + gpio_pin, buffer, false);
+    pub_msg(reply_topic, buffer, false);
   }
 
   // Reboot
   if (String(topic) == root_topic + client_id + "/cmd/reboot" && messageTemp == "1")
   {
+    String msg = (get_current_date() + " " + get_current_time());
+    String reply_topic = root_topic + client_id + "/status/reboot";
+    Serial.print("reply on topic: " + reply_topic);
+    Serial.println();
+    pub_msg(reply_topic, msg, false);
+    Serial.println();
     Serial.println("Rebooting...");
-    pub_msg(root_topic + client_id + "/status/reboot", messageTemp, false);
     delay(2000);
     ESP.restart();
+  }
+
+  // BME280 Sensor
+  if (String(topic) == root_topic + client_id + "/cmd/get_bme280_data" && messageTemp == "1")
+  {
+    String reply_topic = root_location + "environment";
+    Serial.print("reply on topic: " + reply_topic);
+    Serial.println();
+    pub_bme280_data(reply_topic);
   }
 
   // Battery
   if (String(topic) == root_topic + client_id + "/cmd/get_battery_level" && messageTemp == "1")
   {
-    Serial.print("reply on topic: " + root_topic + client_id + "/status/battery_level");
+    String reply_topic = root_topic + client_id + "/status/battery_level";
+    Serial.print("reply on topic: " + reply_topic);
     Serial.println();
-    pub_battery_level(root_topic + client_id + "/status/battery_level");
+    pub_battery_level(reply_topic);
   }
 
   // Wifi Signal Strength
   if (String(topic) == root_topic + client_id + "/cmd/get_wifi_signal_strength" && messageTemp == "1")
   {
-
-    Serial.print("reply on topic: " + root_topic + client_id + "/status/wifi_signal_strength");
+    String reply_topic = root_topic + client_id + "/status/wifi_signal_strength";
+    Serial.print("reply on topic: " + reply_topic);
     Serial.println();
-    pub_wifi_signal_strength(root_topic + client_id + "/status/wifi_signal_strength");
+    pub_wifi_signal_strength(reply_topic);
   }
   Serial.println(); // leave for blank messages
+}
+
+/*!
+ *  Setup MQTT
+ *   @param
+ *   @returns void
+ */
+void setup_mqtt()
+{
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print(F("Function: "));
+    Serial.println(__FUNCTION__);
+  }
+  Serial.println();
+  Serial.println("Setup MQTT");
+  client.setServer(mqtt_server, mqtt_server_port);
+  client.setCallback(mqtt_callback);
+}
+
+/*!
+ * Button callback function to be called when button is pressed
+ * @param
+ * @return void
+ */
+void button_pressed() // Button 1
+{
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print("Function: ");
+    Serial.println(__FUNCTION__);
+  }
+  int gpio_pin = 16;
+  digitalWrite(gpio_pin, !digitalRead(gpio_pin));
+  int gpio_state = digitalRead(gpio_pin);
+
+  // {"client_id":"button_toggle_gpio16","gpio_pin_mode":"OUTPUT","gpio_pin":16,"gpio_state":1}
+  JsonDocument doc;
+  doc["client_id"] = __FUNCTION__;
+  doc["gpio_pin_mode"] = "OUTPUT";
+  doc["gpio_pin"] = gpio_pin;
+  doc["gpio_state"] = gpio_state;
+
+  char buffer[256];
+  serializeJson(doc, buffer);
+
+  pub_msg(root_topic + client_id + "/cmd/set_gpio", buffer, true);
+}
+
+/*!
+ * Setup easy button(s)
+ * @param
+ * @return void
+ */
+void setup_easy_button()
+{
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print("Function: ");
+    Serial.println(__FUNCTION__);
+  }
+  Serial.println();
+  Serial.println("Setup Easy Button");
+
+  // Button 1
+  button.begin();
+  button.onPressed(button_pressed);
 }
