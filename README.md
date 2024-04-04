@@ -1,4 +1,4 @@
-# PlatformIO_ESP32_MQTT_NTP_Template
+# PlatformIO_ESP32_WiFi_MQTT_NTP_Template
 Platform IO Project for ESP32 using WiFI, MQTT, NTP
 
 ### Steps
