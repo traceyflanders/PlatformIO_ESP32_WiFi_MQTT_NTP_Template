@@ -11,9 +11,11 @@
 // #include <EasyButton.h>
 // #include <Adafruit_BME280.h>
 
+#define DEBUG true
+
 // How we fix obtaining functions or vars set in the main.cpp
 // Examples:
-//  extern void pubbattery_level(String topic);
+//  extern void function_name();
 //  extern void pub_wifi_signal_strength(String topic);
 //  extern const int batteryMonitorPin
 
@@ -80,6 +82,7 @@ double round_json(double value)
 // Setup WiFi
 String hostname;
 String mac_address;
+String network;
 String ip_address;
 String subnet_mask;
 String gateway_ip;
@@ -102,12 +105,12 @@ void setup_wifi()
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
 
   Serial.println();
-  Serial.print("Connecting to WiFi ");
+  Serial.print(F("Connecting to WiFi "));
   Serial.println(ssid);
 
   WiFi.mode(WIFI_STA);
@@ -126,20 +129,21 @@ void setup_wifi()
 
     if (wifi_connection_attempts >= wifi_connection_attempts_max)
     {
-      Serial.println("...[FAILED] Rebooting");
+      Serial.println(F("...[FAILED] Rebooting"));
       delay(2000);
       ESP.restart(); // Reboot ESP
     }
     delay(500);
   }
 
-  Serial.println("...[SUCCESS]");
-  Serial.print("Connection attempts ");
+  Serial.println(F("...[SUCCESS]"));
+  Serial.print(F("Connection attempts "));
   Serial.print(wifi_connection_attempts);
   Serial.print(" of ");
   Serial.println(wifi_connection_attempts_max);
   hostname = WiFi.getHostname();
   mac_address = WiFi.macAddress();
+  network = WiFi.networkID().toString();
   ip_address = WiFi.localIP().toString();
   subnet_mask = WiFi.subnetMask().toString();
   subnet_cidr = WiFi.subnetCIDR();
@@ -148,13 +152,13 @@ void setup_wifi()
   dns2_ip = WiFi.dnsIP(1).toString();
   rssi = WiFi.RSSI();
   channel = WiFi.channel();
-  Serial.print("Hostname: ");
+  Serial.print(F("Hostname: "));
   Serial.println(hostname);
-  Serial.print("MAC Address: ");
+  Serial.print(F("MAC Address: "));
   Serial.println(mac_address);
-  Serial.print("Network: ");
-  Serial.println(ip_address);
-  Serial.print("IP Address: ");
+  Serial.print(F("Network: "));
+  Serial.println(network);
+  Serial.print(F("IP Address: "));
   Serial.println(ip_address);
   Serial.print("Subnet Mask: ");
   Serial.println(subnet_mask);
@@ -177,7 +181,7 @@ void setup_wifi()
 // NTP Time
 const char *ntpServer1 = "pool.ntp.org";
 const char *ntpServer2 = "time.nist.gov";
-const char *ntpServer3 = "time.nist.gov";
+const char *ntpServer3 = "time-a-b.nist.gov	";
 const char *time_zone = "MST7MDT,M3.2.0,M11.1.0";
 String month, day, year, hour, minute, second;
 String current_date, current_time, current_daytime;
@@ -189,7 +193,12 @@ String current_date, current_time, current_daytime;
  */
 String get_current_date()
 {
-  struct tm timeinfo;
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print(F("Function: "));
+    Serial.println(__FUNCTION__);
+  }
   /*
     Member    Type  Meaning Range
     tm_sec    int   seconds after the minute  0-61*
@@ -202,45 +211,25 @@ String get_current_date()
     tm_yday   int   days since January 1      0-365
     tm_isdst  int   Daylight Saving Time flag
   */
-  if (!getLocalTime(&timeinfo))
+  struct tm timeinfo;
+  while (!getLocalTime(&timeinfo))
   {
     if (DEBUG)
     {
-      Serial.println("No date available (yet)");
+      Serial.println(F("Failed to get NTP date...retrying"));
     }
-    return "00/00/0000";
+    delay(1000);
   }
-  else
-  {
 
-    // Month
-    int months_by_number[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-    if (months_by_number[timeinfo.tm_mon] < 10)
-    {
-      month = "0";
-      month += String(months_by_number[timeinfo.tm_mon]);
-    }
-    else
-    {
-      month = String(months_by_number[timeinfo.tm_mon]);
-    }
+  int months_by_number[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  month = (months_by_number[timeinfo.tm_mon] < 10)
+              ? "0" + String(months_by_number[timeinfo.tm_mon])
+              : String(months_by_number[timeinfo.tm_mon]);
+  day = (timeinfo.tm_mday < 10) ? "0" + String(timeinfo.tm_mday) : String(timeinfo.tm_mday);
+  year = String((timeinfo.tm_year + 1900));
 
-    // Day
-    if (timeinfo.tm_mday < 10)
-    {
-      day = "0";
-      day += String(timeinfo.tm_mday);
-    }
-    else
-    {
-      day = String(timeinfo.tm_mday);
-    }
-
-    year = String((timeinfo.tm_year + 1900));
-
-    current_date = (month + "/" + day + "/" + year);
-    return current_date;
-  }
+  current_date = (month + "/" + day + "/" + year);
+  return current_date;
 }
 
 /*!
@@ -250,52 +239,29 @@ String get_current_date()
  */
 String get_current_time()
 {
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print(F("Function: "));
+    Serial.println(__FUNCTION__);
+  }
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo))
+  while (!getLocalTime(&timeinfo))
   {
-    return "00:00:00";
+    if (DEBUG)
+    {
+      Serial.println(F("Failed to get NTP time...retrying"));
+    }
+    delay(1000);
   }
-  else
-  {
 
-    // Hour
-    if (timeinfo.tm_hour < 10)
-    {
-      hour = "0";
-      hour += String(timeinfo.tm_hour);
-    }
-    else
-    {
-      hour = String(timeinfo.tm_hour);
-    }
+  hour = (timeinfo.tm_hour < 10) ? "0" + String(timeinfo.tm_hour) : String(timeinfo.tm_hour);
+  minute = (timeinfo.tm_min < 10) ? "0" + String(timeinfo.tm_min) : String(timeinfo.tm_min);
+  second = (timeinfo.tm_sec < 10) ? "0" + String(timeinfo.tm_sec) : String(timeinfo.tm_sec);
+  year = String((timeinfo.tm_year + 1900));
 
-    // Minute
-    if (timeinfo.tm_min < 10)
-    {
-      minute = "0";
-      minute += String(timeinfo.tm_min);
-    }
-    else
-    {
-      minute = String(timeinfo.tm_min);
-    }
-
-    // Second
-    if (timeinfo.tm_sec < 10)
-    {
-      second = "0";
-      second += String(timeinfo.tm_sec);
-    }
-    else
-    {
-      second = String(timeinfo.tm_sec);
-    }
-
-    year = String((timeinfo.tm_year + 1900));
-
-    current_time = (hour + ":" + minute + ":" + second);
-    return current_time;
-  }
+  current_time = (hour + ":" + minute + ":" + second);
+  return current_time;
 }
 
 /*!
@@ -305,9 +271,18 @@ String get_current_time()
  */
 void timeavailable(struct timeval *t)
 {
-  // Serial.println(F("Got time adjustment from NTP!"));
-  Serial.print(get_current_date());
-  Serial.println(get_current_time());
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print(F("Function: "));
+    Serial.println(__FUNCTION__);
+  }
+  Serial.print(F("Received time adjustment from NTP! "));
+  current_date = get_current_date();
+  current_time = get_current_time();
+  Serial.print(current_date);
+  Serial.print(" ");
+  Serial.println(current_time);
 }
 
 /*!
@@ -317,15 +292,18 @@ void timeavailable(struct timeval *t)
  */
 void setup_sntp()
 {
-  Serial.print("Setup NTP time: ");
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print(F("Function: "));
+    Serial.println(__FUNCTION__);
+  }
+
+  Serial.println();
+  Serial.print("NTP Time: ");
   sntp_set_time_sync_notification_cb(timeavailable); // set notification call-back function
   configTzTime(time_zone, ntpServer1, ntpServer2, ntpServer3);
-  current_date = get_current_date();
-  current_time = get_current_time();
-  Serial.print(current_date);
-  Serial.print(" ");
-  Serial.print(current_time);
-  Serial.println();
+  get_current_time(); // Request time to trigger callback above
 }
 
 // Setup MQTT
@@ -460,7 +438,10 @@ void reconnect()
     int client_buffer_size = (myjson.length() + 100);
     client.setBufferSize(client_buffer_size);
 
-    Serial.printf("Client buffer size:\t%u\r\nJSON size:\t%u\r\nFree heap size:\t%u\r\n", client.getBufferSize(), myjson.length(), ESP.getFreeHeap());
+    if (DEBUG)
+    {
+      Serial.printf("Client buffer size:\t%u\r\nJSON size:\t%u\r\nFree heap size:\t%u\r\n", client.getBufferSize(), myjson.length(), ESP.getFreeHeap());
+    }
 
     String topic = root_topic + client_id;
     Serial.print("Publishing my info to topic \"" + topic + "\" ");
@@ -489,7 +470,7 @@ void reconnect()
  *   @param  topic      MQTT Topic to publish
  *   @returns void
  */
-void pub_json_msg(String topic, String json)
+void pub_msg(String topic, String json, boolean retain_msg)
 {
   if (DEBUG)
   {
@@ -498,21 +479,21 @@ void pub_json_msg(String topic, String json)
     Serial.println(__FUNCTION__);
   }
 
+  Serial.println();
   Serial.print("MQTT publish on topic ");
   Serial.print(topic);
   Serial.print("  msg: ");
   Serial.print(json);
   Serial.print("  publish: ");
 
-  if (client.publish(topic.c_str(), json.c_str()))
+  if (client.publish(topic.c_str(), json.c_str(), retain_msg))
   {
-    Serial.print("[SUCCESS]");
+    Serial.println("[SUCCESS]");
   }
   else
   {
-    Serial.print("[FAILED]");
+    Serial.println("[FAILED]");
   }
-  Serial.println();
 }
 
 /*!
@@ -531,18 +512,8 @@ void pub_battery_level(String topic)
 
   int raw_analog = analogRead(batteryMonitorPin);
   int battery_level = map(raw_analog, 2500, 4095, 0, 100);
+  battery_level = (battery_level < 0) ? 0 : battery_level;
   // float batteryVoltage = map(battery_level, 0.0f, 100.0f, 0.0f, 4.2f);
-  Serial.print("MQTT publish on topic ");
-  Serial.print(topic);
-  Serial.print("  msg: ");
-  if (battery_level < 0)
-  {
-    battery_level = 0;
-  }
-  Serial.print(battery_level);
-  // Serial.print("  raw_analog: ");
-  // Serial.print(raw_analog);
-  Serial.print("  publish: ");
 
   // Create JSON document
   JsonDocument doc;
@@ -555,7 +526,7 @@ void pub_battery_level(String topic)
 
   char buffer[256];
   serializeJson(doc, buffer);
-  pub_json_msg(topic, buffer);
+  pub_msg(topic, buffer, false);
 }
 
 /*!
@@ -571,24 +542,17 @@ void pub_wifi_signal_strength(String topic)
     Serial.print("Function: ");
     Serial.println(__FUNCTION__);
   }
-  rssi = WiFi.RSSI();
-  Serial.print("MQTT publish on topic: ");
-  Serial.print(topic);
-  Serial.print("  msg: ");
-  Serial.print(rssi);
-  Serial.print("  publish: ");
-
   // Create JSON document
   JsonDocument doc;
   doc["id"] = client_id;
   doc["date"] = get_current_date();
   doc["time"] = get_current_time();
-  doc["system"]["rssi"] = rssi;
+  doc["system"]["rssi"] = WiFi.RSSI();
   // doc["system"]["rand_num"] = random(100, 999);
 
   char buffer[256];
   serializeJson(doc, buffer);
-  pub_json_msg(topic, buffer);
+  pub_msg(topic, buffer, false);
 }
 
 /*!
@@ -598,7 +562,7 @@ void pub_wifi_signal_strength(String topic)
  *   @param  length     Message size
  *   @returns void
  */
-void callback(char *topic, byte *message, unsigned int length)
+void mqtt_callback(char *topic, byte *message, unsigned int length)
 {
   if (DEBUG)
   {
@@ -606,7 +570,7 @@ void callback(char *topic, byte *message, unsigned int length)
     Serial.print("Function: ");
     Serial.println(__FUNCTION__);
   }
-
+  Serial.println();
   Serial.print("MQTT subscribe msg arrived on topic: ");
   Serial.print(topic);
   Serial.print("    msg: ");
@@ -629,7 +593,6 @@ void callback(char *topic, byte *message, unsigned int length)
   }
 
   // Check subscribed topics when message arrives
-
   if (String(topic) == root_topic + client_id + "/cmd/set_gpio" && !messageTemp.isEmpty())
   {
 
@@ -689,14 +652,15 @@ void callback(char *topic, byte *message, unsigned int length)
     char buffer[256];
     serializeJson(doc2, buffer);
 
-    pub_json_msg(root_topic + client_id + "/status/gpio" + gpio_pin, buffer);
+    Serial.println();
+    pub_msg(root_topic + client_id + "/status/gpio" + gpio_pin, buffer, false);
   }
 
   // Reboot
   if (String(topic) == root_topic + client_id + "/cmd/reboot" && messageTemp == "1")
   {
-    pub_json_msg(root_topic + client_id + "/status/reboot", messageTemp);
     Serial.println("Rebooting...");
+    pub_msg(root_topic + client_id + "/status/reboot", messageTemp, false);
     delay(2000);
     ESP.restart();
   }
@@ -706,7 +670,6 @@ void callback(char *topic, byte *message, unsigned int length)
   {
     Serial.print("reply on topic: " + root_topic + client_id + "/status/battery_level");
     Serial.println();
-    // Serial.print(messageTemp);
     pub_battery_level(root_topic + client_id + "/status/battery_level");
   }
 
@@ -718,5 +681,5 @@ void callback(char *topic, byte *message, unsigned int length)
     Serial.println();
     pub_wifi_signal_strength(root_topic + client_id + "/status/wifi_signal_strength");
   }
-  Serial.println();
+  Serial.println(); // leave for blank messages
 }

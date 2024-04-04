@@ -1,7 +1,6 @@
 /*
  ESP32 Platform
 */
-#define DEBUG true
 
 // Must have includes
 #include "wifimqtt.h"
@@ -26,7 +25,7 @@ void setup()
 
     // MQTT
     client.setServer(mqtt_server, mqtt_server_port);
-    client.setCallback(callback);
+    client.setCallback(mqtt_callback);
 }
 
 void loop()
