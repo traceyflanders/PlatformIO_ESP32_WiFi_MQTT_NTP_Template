@@ -8,10 +8,10 @@
 #include "time.h"
 #include "esp_sntp.h"
 #include <PubSubClient.h>
-// #include <EasyButton.h>
-// #include <Adafruit_BME280.h>
+#include <EasyButton.h>
+#include <Adafruit_BME280.h>
 
-#define DEBUG true
+#define DEBUG false
 
 // How we fix obtaining functions or vars set in the main.cpp
 // Examples:
@@ -51,7 +51,7 @@ void setup_bme280()
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
   Serial.println();
@@ -77,7 +77,7 @@ void setup_bme280()
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
 
@@ -86,27 +86,27 @@ void setup_bme280()
 
   if (DEBUG)
   {
-    Serial.print("pinCount: ");
+    Serial.print(F("pinCount: "));
     Serial.println(pinCount);
   }
 
   for (int thisPin = 0; thisPin < pinCount; thisPin++)
   {
-    Serial.print("thisPin: ");
+    Serial.print(F("thisPin: "));
     Serial.print(thisPin);
     Serial.print(" ");
     pinMode(output_pins[thisPin], OUTPUT);
     if (DEBUG)
     {
-      Serial.print("PinMode: ");
+      Serial.print(F("PinMode: "));
       Serial.print(output_pins[thisPin]);
-      Serial.print(" OUTPUT ");
+      Serial.print(F(" OUTPUT "));
     }
 
     digitalWrite(output_pins[thisPin], LOW);
     if (DEBUG)
     {
-      Serial.print("state: ");
+      Serial.print(F("state: "));
       Serial.println(digitalRead(output_pins[thisPin]));
     }
   }
@@ -173,7 +173,7 @@ void setup_wifi()
   Serial.println(F("...[SUCCESS]"));
   Serial.print(F("Connection attempts "));
   Serial.print(wifi_connection_attempts);
-  Serial.print(" of ");
+  Serial.print(F(" of "));
   Serial.println(wifi_connection_attempts_max);
   hostname = WiFi.getHostname();
   mac_address = WiFi.macAddress();
@@ -194,20 +194,20 @@ void setup_wifi()
   Serial.println(network);
   Serial.print(F("IP Address: "));
   Serial.println(ip_address);
-  Serial.print("Subnet Mask: ");
+  Serial.print(F("Subnet Mask: "));
   Serial.println(subnet_mask);
-  Serial.print("Subnet CIDR: ");
+  Serial.print(F("Subnet CIDR: "));
   Serial.println(subnet_cidr);
-  Serial.print("Gateway IP: ");
+  Serial.print(F("Gateway IP: "));
   Serial.println(gateway_ip);
-  Serial.print("DNS 1: ");
+  Serial.print(F("DNS 1: "));
   Serial.println(dns1_ip);
-  Serial.print("DNS 2: ");
+  Serial.print(F("DNS 2: "));
   Serial.println(dns2_ip);
-  Serial.print("RSSI: ");
+  Serial.print(F("RSSI: "));
   Serial.print(rssi);
-  Serial.println(" dBm");
-  Serial.print("Channel: ");
+  Serial.println(F(" dBm"));
+  Serial.print(F("Channel: "));
   Serial.println(channel);
   digitalWrite(ledWiFiStatusPin, HIGH); // Signals we are connected!
 }
@@ -334,7 +334,7 @@ void setup_sntp()
   }
 
   Serial.println();
-  Serial.print("NTP Time: ");
+  Serial.print(F("NTP Time: "));
   sntp_set_time_sync_notification_cb(timeavailable); // set notification call-back function
   configTzTime(time_zone, ntpServer1, ntpServer2, ntpServer3);
   get_current_time(); // Request time to trigger callback above
@@ -359,7 +359,7 @@ void reconnect()
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
   // Increase our buffer to send larger packet for json 256 is default
@@ -367,20 +367,20 @@ void reconnect()
 
   while (!client.connected())
   {
-    Serial.print("Attempting connection to MQTT server [");
+    Serial.print(F("Attempting connection to MQTT server ["));
     Serial.print(mqtt_server);
-    Serial.print("] as user [");
+    Serial.print(F("] as user ["));
     Serial.print(mqtt_user);
-    Serial.print("] ");
-    Serial.print("client id ");
-    Serial.print("[");
+    Serial.print(F("] "));
+    Serial.print(F("client id "));
+    Serial.print(F("["));
     String mac_name = mac_address;
     mac_name.replace(":", "");
     client_id = "esp32-";
     client_id += mac_name;
     client_id.toLowerCase();
     Serial.print(client_id);
-    Serial.print("] ");
+    Serial.print(F("] "));
 
     String mqtt_subscribed_topics[] = {
         "" + root_topic + client_id + "/cmd/get_battery_level",
@@ -419,9 +419,9 @@ void reconnect()
 
     if (client.connect(client_id.c_str(), mqtt_user, mqtt_password))
     {
-      Serial.println("[SUCCESS]");
+      Serial.println(F("[SUCCESS]"));
 
-      Serial.print("Root publishing topic for sensors: ");
+      Serial.print(F("Root publishing topic for sensors: "));
       Serial.println(root_location);
 
       // Subscribe to all topics
@@ -429,38 +429,38 @@ void reconnect()
       {
         // Add to json
         doc["mqtt"]["subscribed_topics"][idx] = mqtt_subscribed_topics[idx];
-        Serial.print("Subscribing to topic ");
+        Serial.print(F("Subscribing to topic "));
         Serial.print("\"");
         Serial.print(mqtt_subscribed_topics[idx]);
         Serial.print("\" ");
         if (client.subscribe(mqtt_subscribed_topics[idx].c_str()))
         {
-          Serial.println("[SUCCESS]");
+          Serial.println(F("[SUCCESS]"));
         }
         else
         {
-          Serial.println("[FAILED]");
+          Serial.println(F("[FAILED]"));
         }
 
-        Serial.print("Publishing to topic ");
+        Serial.print(F("Publishing to topic "));
         Serial.print("\"");
         Serial.print(mqtt_subscribed_topics[idx]);
         Serial.print("\" ");
         if (client.publish(mqtt_subscribed_topics[idx].c_str(), NULL))
         {
-          Serial.println("[SUCCESS]");
+          Serial.println(F("[SUCCESS]"));
         }
         else
         {
-          Serial.println("[FAILED]");
+          Serial.println(F("[FAILED]"));
         }
       }
     }
     else
     {
-      Serial.print("[FAILED], rc=");
+      Serial.print(F("[FAILED], rc="));
       Serial.print(client.state());
-      Serial.println(" will try again in 5 seconds");
+      Serial.println(F(" will try again in 5 seconds"));
       // Wait 5 seconds before retrying
       delay(5000);
     }
@@ -482,18 +482,18 @@ void reconnect()
     Serial.print("Publishing my info to topic \"" + topic + "\" ");
     if (client.publish(topic.c_str(), buffer))
     {
-      Serial.print("[SUCCESS]");
+      Serial.print(F("[SUCCESS]"));
     }
     else
     {
-      Serial.print("[FAILED]");
+      Serial.print(F("[FAILED]"));
     }
 
     Serial.println();
 
     if (DEBUG)
     {
-      Serial.println("json");
+      Serial.println(F("json"));
       serializeJsonPretty(doc, Serial);
       Serial.println();
     }
@@ -510,24 +510,24 @@ void pub_msg(String topic, String json, boolean retain_msg)
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
 
   Serial.println();
-  Serial.print("MQTT publish on topic ");
+  Serial.print(F("MQTT publish on topic "));
   Serial.print(topic);
-  Serial.print("  msg: ");
+  Serial.print(F("  msg: "));
   Serial.print(json);
-  Serial.print("  publish: ");
+  Serial.print(F("  publish: "));
 
   if (client.publish(topic.c_str(), json.c_str(), retain_msg))
   {
-    Serial.println("[SUCCESS]");
+    Serial.println(F("[SUCCESS]"));
   }
   else
   {
-    Serial.println("[FAILED]");
+    Serial.println(F("[FAILED]"));
   }
 }
 
@@ -541,7 +541,7 @@ void pub_battery_level(String topic)
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
 
@@ -574,7 +574,7 @@ void pub_wifi_signal_strength(String topic)
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
   // Create JSON document
@@ -600,7 +600,7 @@ void pub_bme280_data(String topic)
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
   bme.setSampling(Adafruit_BME280::MODE_FORCED,
@@ -628,21 +628,21 @@ void pub_bme280_data(String topic)
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Temperature = ");
+    Serial.print(F("Temperature = "));
     Serial.print(temperature);
-    Serial.println(" *C");
+    Serial.println(F(" *C"));
 
-    Serial.print("Pressure = ");
+    Serial.print(F("Pressure = "));
     Serial.print(pressure);
-    Serial.println(" hPa");
+    Serial.println(F(" hPa"));
 
-    Serial.print("Approx. Altitude = ");
+    Serial.print(F("Approx. Altitude = "));
     Serial.print(altitude);
     Serial.println(" m");
 
-    Serial.print("Humidity = ");
+    Serial.print(F("Humidity = "));
     Serial.print(humidity);
-    Serial.println(" %");
+    Serial.println(F(" %"));
     Serial.println();
   }
 
@@ -680,13 +680,13 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
   Serial.println();
-  Serial.print("MQTT subscribe msg arrived on topic: ");
+  Serial.print(F("MQTT subscribe msg arrived on topic: "));
   Serial.print(topic);
-  Serial.print("    msg: ");
+  Serial.print(F("    msg: "));
 
   String messageTemp;
   for (int i = 0; i < length; i++)
@@ -702,7 +702,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   }
   else
   {
-    Serial.print("null");
+    Serial.print(F("null"));
   }
 
   // Check subscribed topics when message arrives
@@ -783,7 +783,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
     Serial.println();
     pub_msg(reply_topic, msg, false);
     Serial.println();
-    Serial.println("Rebooting...");
+    Serial.println(F("Rebooting..."));
     delay(2000);
     ESP.restart();
   }
@@ -831,7 +831,7 @@ void setup_mqtt()
     Serial.println(__FUNCTION__);
   }
   Serial.println();
-  Serial.println("Setup MQTT");
+  Serial.println(F("Setup MQTT"));
   client.setServer(mqtt_server, mqtt_server_port);
   client.setCallback(mqtt_callback);
 }
@@ -846,7 +846,7 @@ void button_pressed() // Button 1
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
   int gpio_pin = 16;
@@ -876,11 +876,11 @@ void setup_easy_button()
   if (DEBUG)
   {
     Serial.println();
-    Serial.print("Function: ");
+    Serial.print(F("Function: "));
     Serial.println(__FUNCTION__);
   }
   Serial.println();
-  Serial.println("Setup Easy Button");
+  Serial.println(F("Setup Easy Button"));
 
   // Button 1
   button.begin();
