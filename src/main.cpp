@@ -20,11 +20,22 @@ void setup()
     // setup_output_pins();
 
     // Buttons
-    // setup_easy_button();
+    Serial.println(F("Setup Easy Button"));
+    button.begin();
+    button.onPressed(button_pressed);
 
     // BME280 Sensor
-    // setup_bme280();
-
+    Serial.print(F("Setup BME280 Sensor: "));
+    if (!bme.begin(bme280_address, &Wire))
+    {
+        Serial.println(F("[FAILED]"));
+        while (1)
+            delay(10);
+    }
+    else
+    {
+        Serial.println(F("[SUCCESS]"));
+    }
     // Wifi
     setup_wifi();
 
@@ -32,7 +43,9 @@ void setup()
     setup_sntp();
 
     // MQTT
-    setup_mqtt();
+    Serial.println(F("Setup MQTT"));
+    client.setServer(mqtt_server, mqtt_server_port);
+    client.setCallback(mqtt_callback);
 
     Serial.println(F("Setup End"));
 }
@@ -50,7 +63,7 @@ void loop()
     }
 
     // Buttons
-    // button.read();
+    button.read();
 
     // Get current time in ms
     unsigned long currentMillis = millis();

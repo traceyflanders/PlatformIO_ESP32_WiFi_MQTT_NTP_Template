@@ -19,9 +19,6 @@
 //  extern void pub_wifi_signal_strength(String topic);
 //  extern const int batteryMonitorPin
 
-// Battery level monitor
-const int batteryMonitorPin = 34; // Requires voltage divider circuit for 3.3V
-
 /*!
  * Rounds a number to 2 decimal places example: round(3.14159) -> 3.14
  * @param value  Float value to round
@@ -32,41 +29,6 @@ double round_json(double value)
   return (int)(value * 100 + 0.5) / 100.0;
 }
 
-// Easy Button
-EasyButton button(32); // Button 1
-
-// BME280 Temp, Humd, Pressure Sensor
-Adafruit_BME280 bme; // use I2C interface
-uint8_t bme280_address = 0x76;
-#define SEALEVELPRESSURE_HPA (1007)
-float temperature_celsius, temperature, humidity, pressure, altitude_meters, altitude;
-
-/*!
- * Initializes BME280 sensor in setup
- * @param
- * @return
- */
-void setup_bme280()
-{
-  if (DEBUG)
-  {
-    Serial.println();
-    Serial.print(F("Function: "));
-    Serial.println(__FUNCTION__);
-  }
-  Serial.println();
-  Serial.print(F("BME280 Sensor: "));
-  if (!bme.begin(bme280_address, &Wire))
-  {
-    Serial.println(F("[FAILED]"));
-    while (1)
-      delay(10);
-  }
-  else
-  {
-    Serial.println(F("[SUCCESS]"));
-  }
-}
 /*!
  *   Sets array of  gpio pins a pinMode output on ESP32
  *   @param
@@ -531,6 +493,9 @@ void pub_msg(String topic, String json, boolean retain_msg)
   }
 }
 
+// Battery level monitor
+const int batteryMonitorPin = 34; // Requires voltage divider circuit for 3.3V
+
 /*!
  *  MQTT Publishes battery level
  *   @param  topic      MQTT Topic to publish
@@ -589,6 +554,12 @@ void pub_wifi_signal_strength(String topic)
   serializeJson(doc, buffer);
   pub_msg(topic, buffer, false);
 }
+
+// BME280 Temp, Humd, Pressure Sensor
+Adafruit_BME280 bme; // use I2C interface
+uint8_t bme280_address = 0x76;
+#define SEALEVELPRESSURE_HPA (1007)
+float temperature_celsius, temperature, humidity, pressure, altitude_meters, altitude;
 
 /*!
  * Gets bme280 sensor data
@@ -817,24 +788,8 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   Serial.println(); // leave for blank messages
 }
 
-/*!
- *  Setup MQTT
- *   @param
- *   @returns void
- */
-void setup_mqtt()
-{
-  if (DEBUG)
-  {
-    Serial.println();
-    Serial.print(F("Function: "));
-    Serial.println(__FUNCTION__);
-  }
-  Serial.println();
-  Serial.println(F("Setup MQTT"));
-  client.setServer(mqtt_server, mqtt_server_port);
-  client.setCallback(mqtt_callback);
-}
+// Easy Button
+EasyButton button(32); // Button 1
 
 /*!
  * Button callback function to be called when button is pressed
@@ -864,25 +819,4 @@ void button_pressed() // Button 1
   serializeJson(doc, buffer);
 
   pub_msg(root_topic + client_id + "/cmd/set_gpio", buffer, true);
-}
-
-/*!
- * Setup easy button(s)
- * @param
- * @return void
- */
-void setup_easy_button()
-{
-  if (DEBUG)
-  {
-    Serial.println();
-    Serial.print(F("Function: "));
-    Serial.println(__FUNCTION__);
-  }
-  Serial.println();
-  Serial.println(F("Setup Easy Button"));
-
-  // Button 1
-  button.begin();
-  button.onPressed(button_pressed);
 }
