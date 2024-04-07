@@ -18,8 +18,8 @@ Inside `src/wifimqtt.h` config file replace the following to suit your needs.
 // MQTT
 const char *mqtt_server = "10.0.1.254";
 const int mqtt_server_port = 1883;
-String root_topic = "home/devices/";    // Default for all devices, contains cmd, status sub-topics
-String root_location = "home/hallway/"; // Default topic for all sensor reporting
+String root_topic = "home/devices";    // Default for all devices, contains cmd, status sub-topics
+String root_location = "home/test"; // Default topic for all sensor reporting
 
 // NTP Time
 const char *ntpServer1 = "pool.ntp.org";
