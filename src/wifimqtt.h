@@ -555,6 +555,33 @@ void pub_wifi_signal_strength(String topic)
   pub_msg(topic, buffer, false);
 }
 
+/*!
+ *  MQTT Publishes fake sensor data
+ *   @param topic   MQTT Topic to publish
+ *   @returns void
+ */
+void pub_fake_sensor_data(String topic)
+{
+  if (DEBUG)
+  {
+    Serial.println();
+    Serial.print(F("Function: "));
+    Serial.println(__FUNCTION__);
+  }
+
+  // Create JSON document
+  JsonDocument doc;
+  doc["id"] = client_id;
+  doc["sensor"]["type"] = "fake";
+  doc["environment"]["temperature"] = random(60, 95);
+  doc["environment"]["humidity"] = random(20, 80);
+  doc["environment"]["lux"] = random(200, 800);
+
+  char buffer[256];
+  serializeJson(doc, buffer);
+  pub_msg(topic, buffer, false);
+}
+
 // BME280 Temp, Humd, Pressure Sensor
 Adafruit_BME280 bme; // use I2C interface
 uint8_t bme280_address = 0x76;

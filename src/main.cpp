@@ -73,47 +73,7 @@ void loop()
     if (currentMillis - previousMillis > (1000 * update_in_seconds))
     {
         previousMillis = currentMillis;
-
-        // Fake sensors
-        String topic;
-        topic = root_location + "/environment";
-
-        // Fake Temp
-        char tempString[8];
-        int temperature = random(66, 100);
-        dtostrf(temperature, 1, 2, tempString);
-
-        // Fake Humidity
-        char humString[8];
-        int humidity = random(30, 80);
-        dtostrf(humidity, 1, 2, humString);
-
-        // Create JSON document
-        JsonDocument doc;
-        doc["id"] = client_id;
-        doc["environment"]["temperature"] = temperature;
-        doc["environment"]["humidity"] = humidity;
-        doc["environment"]["rand_num"] = random(100, 999);
-
-        char buffer[256];
-        serializeJson(doc, buffer);
-
-        Serial.print("MQTT publish on topic ");
-        Serial.print(topic);
-        Serial.print("  msg: ");
-        serializeJson(doc, Serial);
-        Serial.print("  publish: ");
-
-        if (client.publish(topic.c_str(), buffer))
-        {
-
-            Serial.print("[SUCCESS]");
-        }
-        else
-        {
-            Serial.print("[FAILED]");
-        }
-        Serial.println();
+        pub_fake_sensor_data(root_location + "/environment");
     }
 
     // Get current time in ms
