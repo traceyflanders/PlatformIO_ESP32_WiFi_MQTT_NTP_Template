@@ -75,7 +75,7 @@ void loop()
 
         // Fake sensors
         String topic;
-        topic = root_location + "environment";
+        topic = root_location + "/environment";
 
         // Fake Temp
         char tempString[8];

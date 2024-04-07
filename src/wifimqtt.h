@@ -308,8 +308,8 @@ const int mqtt_server_port = 1883;
 WiFiClient espClient;
 PubSubClient client(espClient);
 String client_id;
-String root_topic = "home/devices/";    // Default for all devices, contains cmd, status sub-topics
-String root_location = "home/hallway/"; // Default topic for all sensor reporting
+String root_topic = "home/devices"; // Default for all devices, contains cmd, status sub-topics
+String root_location = "home/test"; // Default topic for all sensor reporting
 
 /*!
  *  Connects to MQTT server
@@ -343,13 +343,14 @@ void reconnect()
     client_id.toLowerCase();
     Serial.print(client_id);
     Serial.print(F("] "));
+    root_topic += "/" + client_id;
 
     String mqtt_subscribed_topics[] = {
-        "" + root_topic + client_id + "/cmd/get_battery_level",
-        "" + root_topic + client_id + "/cmd/get_wifi_signal_strength",
-        "" + root_topic + client_id + "/cmd/get_bme280_data",
-        "" + root_topic + client_id + "/cmd/set_gpio",
-        "" + root_topic + client_id + "/cmd/reboot"};
+        "" + root_topic + "/cmd/get_battery_level",
+        "" + root_topic + "/cmd/get_wifi_signal_strength",
+        "" + root_topic + "/cmd/get_bme280_data",
+        "" + root_topic + "/cmd/set_gpio",
+        "" + root_topic + "/cmd/reboot"};
 
     // Create json of all our info
     JsonDocument doc;
@@ -440,9 +441,8 @@ void reconnect()
       Serial.printf("Client buffer size:\t%u\r\nJSON size:\t%u\r\nFree heap size:\t%u\r\n", client.getBufferSize(), myjson.length(), ESP.getFreeHeap());
     }
 
-    String topic = root_topic + client_id;
-    Serial.print("Publishing my info to topic \"" + topic + "\" ");
-    if (client.publish(topic.c_str(), buffer))
+    Serial.print("Publishing my info to topic \"" + root_topic + "\" ");
+    if (client.publish(root_topic.c_str(), buffer))
     {
       Serial.print(F("[SUCCESS]"));
     }
@@ -679,7 +679,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   // Check subscribed topics when message arrives
 
   // Check for cmd set gpio topic
-  if (String(topic) == root_topic + client_id + "/cmd/set_gpio" && !messageTemp.isEmpty())
+  if (String(topic) == root_topic + "/cmd/set_gpio" && !messageTemp.isEmpty())
   {
 
     JsonDocument doc;
@@ -739,17 +739,17 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
     char buffer[256];
     serializeJson(doc2, buffer);
 
-    String reply_topic = root_topic + client_id + "/status/gpio" + gpio_pin;
+    String reply_topic = root_topic + "/status/gpio" + gpio_pin;
     Serial.print("reply on topic: " + reply_topic);
     Serial.println();
     pub_msg(reply_topic, buffer, false);
   }
 
   // Reboot
-  if (String(topic) == root_topic + client_id + "/cmd/reboot" && messageTemp == "1")
+  if (String(topic) == root_topic + "/cmd/reboot" && messageTemp == "1")
   {
     String msg = (get_current_date() + " " + get_current_time());
-    String reply_topic = root_topic + client_id + "/status/reboot";
+    String reply_topic = root_topic + "/status/reboot";
     Serial.print("reply on topic: " + reply_topic);
     Serial.println();
     pub_msg(reply_topic, msg, false);
@@ -760,27 +760,27 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   }
 
   // BME280 Sensor
-  if (String(topic) == root_topic + client_id + "/cmd/get_bme280_data" && messageTemp == "1")
+  if (String(topic) == root_topic + "/cmd/get_bme280_data" && messageTemp == "1")
   {
-    String reply_topic = root_location + "environment";
+    String reply_topic = root_location + "/environment";
     Serial.print("reply on topic: " + reply_topic);
     Serial.println();
     pub_bme280_data(reply_topic);
   }
 
   // Battery
-  if (String(topic) == root_topic + client_id + "/cmd/get_battery_level" && messageTemp == "1")
+  if (String(topic) == root_topic + "/cmd/get_battery_level" && messageTemp == "1")
   {
-    String reply_topic = root_topic + client_id + "/status/battery_level";
+    String reply_topic = root_topic + "/status/battery_level";
     Serial.print("reply on topic: " + reply_topic);
     Serial.println();
     pub_battery_level(reply_topic);
   }
 
   // Wifi Signal Strength
-  if (String(topic) == root_topic + client_id + "/cmd/get_wifi_signal_strength" && messageTemp == "1")
+  if (String(topic) == root_topic + "/cmd/get_wifi_signal_strength" && messageTemp == "1")
   {
-    String reply_topic = root_topic + client_id + "/status/wifi_signal_strength";
+    String reply_topic = root_topic + "/status/wifi_signal_strength";
     Serial.print("reply on topic: " + reply_topic);
     Serial.println();
     pub_wifi_signal_strength(reply_topic);
@@ -818,5 +818,5 @@ void button_pressed() // Button 1
   char buffer[256];
   serializeJson(doc, buffer);
 
-  pub_msg(root_topic + client_id + "/cmd/set_gpio", buffer, true);
+  pub_msg(root_topic + "/cmd/set_gpio", buffer, true);
 }
