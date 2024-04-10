@@ -701,6 +701,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   else
   {
     Serial.print(F("null"));
+    return;
   }
 
   // Check subscribed topics when message arrives
