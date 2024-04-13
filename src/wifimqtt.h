@@ -5,7 +5,7 @@
 #include "credentials.h"
 #include <ArduinoJson.h>
 
-// #define ENABLE_SSL // Comment this out to turn off SSL
+// #define ENABLE_SSL // Enables secure MQTT config
 
 #ifdef ENABLE_SSL
 #include <WiFiClientSecure.h>

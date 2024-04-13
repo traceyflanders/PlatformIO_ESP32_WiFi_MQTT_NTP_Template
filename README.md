@@ -15,6 +15,8 @@ const char *mqtt_password = "super-secret-password";
 
 Inside `src/wifimqtt.h` config file replace the following to suit your needs.
 ```
+// #define ENABLE_SSL // Enables secure MQTT config
+
 // MQTT
 const char *mqtt_server = "10.0.1.254";
 const int mqtt_server_port = 1883;
