@@ -4,7 +4,51 @@
 #include <Wire.h>
 #include "credentials.h"
 #include <ArduinoJson.h>
+
+// #define ENABLE_SSL // Comment this out to turn off SSL
+
+#ifdef ENABLE_SSL
+#include <WiFiClientSecure.h>
+// Root CA from letsencrypt.com
+// Get it her https://www.letsencrypt.org/certificates
+const char *letsencrypt_root_ca =
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw\n"
+    "TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh\n"
+    "cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4\n"
+    "WhcNMzUwNjA0MTEwNDM4WjBPMQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJu\n"
+    "ZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxFTATBgNVBAMTDElTUkcgUm9vdCBY\n"
+    "MTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAK3oJHP0FDfzm54rVygc\n"
+    "h77ct984kIxuPOZXoHj3dcKi/vVqbvYATyjb3miGbESTtrFj/RQSa78f0uoxmyF+\n"
+    "0TM8ukj13Xnfs7j/EvEhmkvBioZxaUpmZmyPfjxwv60pIgbz5MDmgK7iS4+3mX6U\n"
+    "A5/TR5d8mUgjU+g4rk8Kb4Mu0UlXjIB0ttov0DiNewNwIRt18jA8+o+u3dpjq+sW\n"
+    "T8KOEUt+zwvo/7V3LvSye0rgTBIlDHCNAymg4VMk7BPZ7hm/ELNKjD+Jo2FR3qyH\n"
+    "B5T0Y3HsLuJvW5iB4YlcNHlsdu87kGJ55tukmi8mxdAQ4Q7e2RCOFvu396j3x+UC\n"
+    "B5iPNgiV5+I3lg02dZ77DnKxHZu8A/lJBdiB3QW0KtZB6awBdpUKD9jf1b0SHzUv\n"
+    "KBds0pjBqAlkd25HN7rOrFleaJ1/ctaJxQZBKT5ZPt0m9STJEadao0xAH0ahmbWn\n"
+    "OlFuhjuefXKnEgV4We0+UXgVCwOPjdAvBbI+e0ocS3MFEvzG6uBQE3xDk3SzynTn\n"
+    "jh8BCNAw1FtxNrQHusEwMFxIt4I7mKZ9YIqioymCzLq9gwQbooMDQaHWBfEbwrbw\n"
+    "qHyGO0aoSCqI3Haadr8faqU9GY/rOPNk3sgrDQoo//fb4hVC1CLQJ13hef4Y53CI\n"
+    "rU7m2Ys6xt0nUW7/vGT1M0NPAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNV\n"
+    "HRMBAf8EBTADAQH/MB0GA1UdDgQWBBR5tFnme7bl5AFzgAiIyBpY9umbbjANBgkq\n"
+    "hkiG9w0BAQsFAAOCAgEAVR9YqbyyqFDQDLHYGmkgJykIrGF1XIpu+ILlaS/V9lZL\n"
+    "ubhzEFnTIZd+50xx+7LSYK05qAvqFyFWhfFQDlnrzuBZ6brJFe+GnY+EgPbk6ZGQ\n"
+    "3BebYhtF8GaV0nxvwuo77x/Py9auJ/GpsMiu/X1+mvoiBOv/2X/qkSsisRcOj/KK\n"
+    "NFtY2PwByVS5uCbMiogziUwthDyC3+6WVwW6LLv3xLfHTjuCvjHIInNzktHCgKQ5\n"
+    "ORAzI4JMPJ+GslWYHb4phowim57iaztXOoJwTdwJx4nLCgdNbOhdjsnvzqvHu7Ur\n"
+    "TkXWStAmzOVyyghqpZXjFaH3pO3JLF+l+/+sKAIuvtd7u+Nxe5AW0wdeRlN8NwdC\n"
+    "jNPElpzVmbUq4JUagEiuTDkHzsxHpFKVK7q4+63SM1N95R1NbdWhscdCb+ZAJzVc\n"
+    "oyi3B43njTOQ5yOf+1CceWxG1bQVs5ZufpsMljq4Ui0/1lvh+wjChP4kqKOJ2qxq\n"
+    "4RgqsahDYVvTH9w7jXbyLeiNdd8XM2w9U/t7y0Ff/9yi0GE44Za4rF2LN9d11TPA\n"
+    "mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d\n"
+    "emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=\n"
+    "-----END CERTIFICATE-----\n";
+#endif
+
+#ifndef ENABLE_SSL
 #include <WiFi.h>
+#endif
+
 #include "time.h"
 #include "esp_sntp.h"
 #include <PubSubClient.h>
@@ -303,13 +347,22 @@ void setup_sntp()
 }
 
 // Setup MQTT
+#ifdef ENABLE_SSL // SSL
+const char *mqtt_server = "mymqttwithssl.duckdns.org";
+const int mqtt_server_port = 8883;
+WiFiClientSecure espClient;
+#endif
+
+#ifndef ENABLE_SSL
 const char *mqtt_server = "10.0.1.254";
 const int mqtt_server_port = 1883;
 WiFiClient espClient;
+#endif
+
 PubSubClient client(espClient);
 String client_id;
-String root_topic = "home/devices"; // Default for all devices, contains cmd, status sub-topics
-String root_location = "home/test"; // Default topic for all sensor reporting
+String root_topic = "home/devices";    // Default for all devices, contains cmd, status sub-topics
+String root_location = "home/hallway"; // Default topic for all sensor reporting
 
 /*!
  *  Connects to MQTT server
@@ -331,6 +384,8 @@ void reconnect()
   {
     Serial.print(F("Attempting connection to MQTT server ["));
     Serial.print(mqtt_server);
+    Serial.print(F("] on port ["));
+    Serial.print(mqtt_server_port);
     Serial.print(F("] as user ["));
     Serial.print(mqtt_user);
     Serial.print(F("] "));
@@ -343,14 +398,33 @@ void reconnect()
     client_id.toLowerCase();
     Serial.print(client_id);
     Serial.print(F("] "));
-    root_topic += "/" + client_id;
 
+    // Set default prefix topic
+    String default_topic = root_topic + "/" + client_id;
+
+    // 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 23, 25, 26, 27, 32, 33
     String mqtt_subscribed_topics[] = {
-        "" + root_topic + "/cmd/get_battery_level",
-        "" + root_topic + "/cmd/get_wifi_signal_strength",
-        "" + root_topic + "/cmd/get_bme280_data",
-        "" + root_topic + "/cmd/set_gpio",
-        "" + root_topic + "/cmd/reboot"};
+        "" + default_topic + "/cmd/get_battery_level",
+        "" + default_topic + "/cmd/get_wifi_signal_strength",
+        "" + default_topic + "/cmd/get_bme280_data",
+        "" + default_topic + "/cmd/set_gpio4",
+        "" + default_topic + "/cmd/set_gpio5",
+        "" + default_topic + "/cmd/set_gpio12",
+        "" + default_topic + "/cmd/set_gpio13",
+        "" + default_topic + "/cmd/set_gpio14",
+        "" + default_topic + "/cmd/set_gpio15",
+        "" + default_topic + "/cmd/set_gpio16",
+        "" + default_topic + "/cmd/set_gpio17",
+        "" + default_topic + "/cmd/set_gpio18",
+        "" + default_topic + "/cmd/set_gpio19",
+        "" + default_topic + "/cmd/set_gpio23",
+        "" + default_topic + "/cmd/set_gpio25",
+        "" + default_topic + "/cmd/set_gpio26",
+        "" + default_topic + "/cmd/set_gpio27",
+        "" + default_topic + "/cmd/set_gpio32",
+        "" + default_topic + "/cmd/set_gpio33",
+        "" + default_topic + "/cmd/watch_dog",
+        "" + default_topic + "/cmd/reboot"};
 
     // Create json of all our info
     JsonDocument doc;
@@ -441,8 +515,8 @@ void reconnect()
       Serial.printf("Client buffer size:\t%u\r\nJSON size:\t%u\r\nFree heap size:\t%u\r\n", client.getBufferSize(), myjson.length(), ESP.getFreeHeap());
     }
 
-    Serial.print("Publishing my info to topic \"" + root_topic + "\" ");
-    if (client.publish(root_topic.c_str(), buffer))
+    Serial.print("Publishing my info to topic \"" + default_topic + "\" ");
+    if (client.publish(default_topic.c_str(), myjson.c_str()))
     {
       Serial.print(F("[SUCCESS]"));
     }
@@ -704,80 +778,101 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
     return;
   }
 
-  // Check subscribed topics when message arrives
-
-  // Check for cmd set gpio topic
-  if (String(topic) == root_topic + "/cmd/set_gpio" && !messageTemp.isEmpty())
+  // Set GPIO 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 23, 25, 26, 27, 32, 33
+  if (!messageTemp.isEmpty())
   {
-
-    JsonDocument doc;
-    deserializeJson(doc, messageTemp);
-    // Deserialize the JSON document
-    DeserializationError error = deserializeJson(doc, messageTemp);
-
-    // Test if parsing succeeds.
-    if (error)
+    String string_topic = topic;
+    if (string_topic == root_topic + "/" + client_id + "/cmd/set_gpio4" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio5" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio12" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio13" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio14" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio15" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio16" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio17" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio18" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio19" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio23" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio25" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio26" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio27" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio32" ||
+        string_topic == root_topic + "/" + client_id + "/cmd/set_gpio33")
     {
+
+      JsonDocument doc;
+      deserializeJson(doc, messageTemp); // Deserialize input JSON
+      DeserializationError error = deserializeJson(doc, messageTemp);
+
+      // Test if parsing succeeds.
+      if (error)
+      {
+        Serial.println();
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.f_str());
+        return;
+      }
+
+      // Map incoming json
+      String gpio_pin_mode = doc["gpio_pin_mode"];
+      int gpio_pin = doc["gpio_pin"];
+      int gpio_state = doc["gpio_state"];
+
+      // Determine pin mode
+      if (gpio_pin_mode == "OUTPUT")
+      {
+        pinMode(gpio_pin, OUTPUT);
+      }
+
+      if (gpio_pin_mode == "INPUT")
+      {
+        pinMode(gpio_pin, INPUT);
+      }
+
+      if (gpio_pin_mode == "INPUT_PULLDOWN")
+      {
+        pinMode(gpio_pin, INPUT_PULLDOWN);
+      }
+
+      if (gpio_pin_mode == "INPUT_PULLUP")
+      {
+        pinMode(gpio_pin, INPUT_PULLUP);
+      }
+
+      // Determin pin state
+      if (gpio_state == 1)
+      {
+        digitalWrite(gpio_pin, HIGH);
+      }
+      else if (gpio_state == 0)
+      {
+        digitalWrite(gpio_pin, LOW);
+      }
+
+      JsonDocument doc2;
+      doc2["id"] = __FUNCTION__;
+      doc2["date"] = get_current_date();
+      doc2["time"] = get_current_time();
+      doc2["gpio_pin"] = gpio_pin;
+      doc2["gpio_state"] = digitalRead(gpio_pin);
+      doc2["gpio_pin_mode"] = gpio_pin_mode;
+
+      char buffer[256];
+      serializeJson(doc2, buffer);
+
+      // Update mqtt topic that controls the node-red virtual buttons status
+      String reply_topic = root_topic + "/" + client_id + "/status/gpio" + gpio_pin;
+      Serial.print("reply on topic: " + reply_topic);
       Serial.println();
-      Serial.print(F("deserializeJson() failed: "));
-      Serial.println(error.f_str());
-      return;
+      pub_msg(reply_topic, buffer, true);
     }
-
-    String host = doc["client_id"];
-    String gpio_pin_mode = doc["gpio_pin_mode"];
-    int gpio_pin = doc["gpio_pin"];
-    int gpio_state = doc["gpio_state"];
-
-    if (gpio_pin_mode == "OUTPUT")
-    {
-      pinMode(gpio_pin, OUTPUT);
-    }
-
-    if (gpio_pin_mode == "INPUT")
-    {
-      pinMode(gpio_pin, INPUT);
-    }
-
-    if (gpio_pin_mode == "INPUT_PULLDOWN")
-    {
-      pinMode(gpio_pin, INPUT_PULLDOWN);
-    }
-
-    if (gpio_pin_mode == "INPUT_PULLUP")
-    {
-      pinMode(gpio_pin, INPUT_PULLUP);
-    }
-
-    if (gpio_state == 1)
-    {
-      digitalWrite(gpio_pin, HIGH);
-    }
-    else if (gpio_state == 0)
-    {
-      digitalWrite(gpio_pin, LOW);
-    }
-
-    JsonDocument doc2;
-    doc2["date"] = get_current_date();
-    doc2["time"] = get_current_time();
-    doc2["gpio_state"] = digitalRead(gpio_pin);
-    doc2["gpio_pin_mode"] = gpio_pin_mode;
-
-    char buffer[256];
-    serializeJson(doc2, buffer);
-
-    String reply_topic = root_topic + "/status/gpio" + gpio_pin;
-    Serial.print("reply on topic: " + reply_topic);
-    Serial.println();
-    pub_msg(reply_topic, buffer, false);
   }
 
   // Reboot
-  if (String(topic) == root_topic + "/cmd/reboot" && messageTemp == "1")
+  if (String(topic) == root_topic + "/" + client_id + "/cmd/reboot" && messageTemp == "1")
   {
     String msg = (get_current_date() + " " + get_current_time());
-    String reply_topic = root_topic + "/status/reboot";
+    String reply_topic = root_topic + "/" + client_id + "/status/reboot";
     Serial.print("reply on topic: " + reply_topic);
     Serial.println();
     pub_msg(reply_topic, msg, false);
@@ -788,7 +883,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   }
 
   // BME280 Sensor
-  if (String(topic) == root_topic + "/cmd/get_bme280_data" && messageTemp == "1")
+  if (String(topic) == root_topic + "/" + client_id + "/cmd/get_bme280_data" && messageTemp == "1")
   {
     String reply_topic = root_location + "/environment";
     Serial.print("reply on topic: " + reply_topic);
@@ -797,18 +892,18 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
   }
 
   // Battery
-  if (String(topic) == root_topic + "/cmd/get_battery_level" && messageTemp == "1")
+  if (String(topic) == root_topic + "/" + client_id + "/cmd/get_battery_level" && messageTemp == "1")
   {
-    String reply_topic = root_topic + "/status/battery_level";
+    String reply_topic = root_topic + "/" + client_id + "/status/battery_level";
     Serial.print("reply on topic: " + reply_topic);
     Serial.println();
     pub_battery_level(reply_topic);
   }
 
   // Wifi Signal Strength
-  if (String(topic) == root_topic + "/cmd/get_wifi_signal_strength" && messageTemp == "1")
+  if (String(topic) == root_topic + "/" + client_id + "/cmd/get_wifi_signal_strength" && messageTemp == "1")
   {
-    String reply_topic = root_topic + "/status/wifi_signal_strength";
+    String reply_topic = root_topic + "/" + client_id + "/status/wifi_signal_strength";
     Serial.print("reply on topic: " + reply_topic);
     Serial.println();
     pub_wifi_signal_strength(reply_topic);
@@ -833,18 +928,19 @@ void button_pressed() // Button 1
     Serial.println(__FUNCTION__);
   }
   int gpio_pin = 16;
-  digitalWrite(gpio_pin, !digitalRead(gpio_pin));
+  digitalWrite(gpio_pin, !digitalRead(gpio_pin)); // Toggles
   int gpio_state = digitalRead(gpio_pin);
 
-  // {"client_id":"button_toggle_gpio16","gpio_pin_mode":"OUTPUT","gpio_pin":16,"gpio_state":1}
+  // {"date":"04/12/2024","time":"13:37:08","gpio_pin":16,"gpio_state":1,"gpio_pin_mode":"OUTPUT"}
   JsonDocument doc;
-  doc["client_id"] = __FUNCTION__;
-  doc["gpio_pin_mode"] = "OUTPUT";
+  doc["id"] = "physical_button_pressed";
+  doc["date"] = get_current_date();
+  doc["time"] = get_current_time();
   doc["gpio_pin"] = gpio_pin;
   doc["gpio_state"] = gpio_state;
+  doc["gpio_pin_mode"] = "OUTPUT";
 
   char buffer[256];
   serializeJson(doc, buffer);
-
-  pub_msg(root_topic + "/cmd/set_gpio", buffer, true);
+  pub_msg(root_topic + "/" + client_id + "/cmd/set_gpio" + gpio_pin, buffer, true); // We want to retain
 }

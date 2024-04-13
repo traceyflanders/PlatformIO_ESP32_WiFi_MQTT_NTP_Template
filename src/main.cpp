@@ -36,7 +36,6 @@ void setup()
     {
         Serial.println(F("[SUCCESS]"));
     }
-
     // Wifi
     setup_wifi();
 
@@ -45,6 +44,9 @@ void setup()
 
     // MQTT
     Serial.println(F("Setup MQTT"));
+#ifdef ENABLE_SSL
+    espClient.setCACert(letsencrypt_root_ca); // SSL Root CA
+#endif
     client.setServer(mqtt_server, mqtt_server_port);
     client.setCallback(mqtt_callback);
 
@@ -58,10 +60,8 @@ void loop()
     {
         reconnect();
     }
-    else
-    {
-        client.loop();
-    }
+
+    client.loop();
 
     // Buttons
     button.read();
@@ -73,9 +73,11 @@ void loop()
     if (currentMillis - previousMillis > (1000 * update_in_seconds))
     {
         previousMillis = currentMillis;
-        pub_fake_sensor_data(root_location + "/environment");
+        pub_bme280_data(root_location + "/environment");
+        // pub_fake_sensor_data(root_location + "/environment");
     }
 
+    // NTP Time Loop
     // Get current time in ms
     unsigned long currentMillis2 = millis();
 
@@ -83,7 +85,8 @@ void loop()
     if (currentMillis2 - previousMillis2 > (1000 * update_in_seconds2))
     {
         previousMillis2 = currentMillis2;
-        Serial.print(get_current_date());
-        Serial.println(get_current_time());
+        // Serial.print(get_current_date());
+        // Serial.print(" ");
+        // Serial.println(get_current_time());
     }
 }
