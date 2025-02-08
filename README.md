@@ -14,14 +14,28 @@ const char *mqtt_password = "super-secret-password";
 ```
 
 Inside `src/wifimqtt.h` config file replace the following to suit your needs.
+Decide if you want encrypted MQTT communication (off by default). Enable it for remote sensors that connect to your mqtt server over the internet. You'll also need to configure your mosquitto server for SSL. I use free certificates from [letsencrypt.org](https://letsencrypt.org/)
 ```
-// #define ENABLE_SSL // Enables secure MQTT config
+// #define ENABLE_SSL // Uncomment to enable secure MQTT config
 
-// MQTT
+// Setup MQTT
+#ifdef ENABLE_SSL // MQTT SSL config
+const char *mqtt_server = "broker.xxxxxx.com";
+const int mqtt_server_port = 8883;
+WiFiClientSecure espClient;
+#endif
+
+#ifndef ENABLE_SSL // Default MQTT config
 const char *mqtt_server = "10.0.1.254";
 const int mqtt_server_port = 1883;
-String root_topic = "home/devices";    // Default for all devices, contains cmd, status sub-topics
-String root_location = "home/test"; // Default topic for all sensor reporting
+WiFiClient espClient;
+#endif
+
+// MQTT root pub topics
+PubSubClient client(espClient);
+String client_id;
+String root_topic = "home/devices"; // Default for all devices, contains cmd, status sub-topics
+String root_location = "home/bedroom"; // Default topic for this sensor's reporting
 
 // NTP Time
 const char *ntpServer1 = "pool.ntp.org";
